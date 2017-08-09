@@ -30,6 +30,11 @@
       data: {
         type: Array,
         default: null
+      },
+      // scroll 是否监听滚动事件
+      listenScroll: {
+        type: Boolean,
+        default: false
       }
     },
     mounted () {
@@ -48,16 +53,32 @@
           probeType: this.probeType,
           click: this.click
         })
+
+        // 监听bscroll的滚动事件
+        if (this.listenScroll) {
+          console.log(this.scroll)
+          this.scroll.on('scroll', (pos) => {
+            this.$emit('scroll', pos)
+          })
+        }
       },
       // 下面代理几个比较常用的方法
       enable () {
-        this.scr && this.scroll.enable()
+        this.scroll && this.scroll.enable()
       },
       disable () {
-        this.scr && this.scroll.disable()
+        this.scroll && this.scroll.disable()
       },
       refresh () {
         this.scroll && this.scroll.refresh()
+      },
+      scrollTo () {
+        this.scroll && this.scroll.scrollTo.apply(this.scroll, arguments)
+      },
+      // 滚动到列表中指定的dom元素位置
+      scrollToElement () {
+//        this.scroll.scrollToElement(el) 在参数中定义el，和下面的效果一样
+        this.scroll && this.scroll.scrollToElement.apply(this.scroll, arguments)
       }
     },
     data () {

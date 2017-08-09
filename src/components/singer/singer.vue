@@ -1,20 +1,13 @@
 <template>
   <div class="singer">
-    <Scroll ref="scroll" class="singer-content" :data="singerList">
-      <div>
-        <p v-for="item in singerList">
-          {{item.title}}
-        </p>
-      </div>
-    </Scroll>
-
+    <list-view :data="singerList"></list-view>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
   import { getSinger } from 'api/singer.js'
   import { ERR_OK } from 'api/config.js'
-  import Scroll from 'base/scroll/Scroll'
+  import ListView from 'base/listview/ListView'
   import Singer from 'common/js/singer'
 
   // 每个分组都有一个名称
@@ -23,7 +16,7 @@
   const HOT_SINGER_LEN = '10'
 
   export default {
-    components: {Scroll},
+    components: {ListView},
     data () {
       return {
         singerList: []
@@ -109,9 +102,4 @@
     top: 88px
     bottom: 0
     width: 100%
-  // 使用bscroll父元素必须有固定的高度，才有滚动
-    .singer-content {
-      height: 100%
-      overflow: hidden
-    }
 </style>
