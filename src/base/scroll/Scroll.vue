@@ -53,7 +53,6 @@
           probeType: this.probeType,
           click: this.click
         })
-
         // 监听bscroll的滚动事件
         if (this.listenScroll) {
           console.log(this.scroll)

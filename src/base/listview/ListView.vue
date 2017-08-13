@@ -3,7 +3,7 @@
           ref="listview"
           :data="data"
           :listen-scroll="true"
-          :probe-type="2"
+          :probe-type="3"
           @scroll="listScroll">
     <ul>
       <li v-for="group in data" class="list-group" ref="listGroup">
@@ -67,20 +67,19 @@
       onShortcutTouchStart (el) {
         let firstTouch = el.touches[0]
         this.touch.y1 = firstTouch.pageY
-
+        console.log('h5:', firstTouch.pageY)
         // 拿到dom元素在列表中的索引
         let anchorIndex = getData(el.target, 'index')
         if (anchorIndex) {
           this.touch.anchorIndex = anchorIndex
-          this.$refs.listview.scrollToElement(this.$refs.listGroup[anchorIndex])
-          // 高亮元素
-          this.currentIndex = anchorIndex
+          this._scrollToElement(anchorIndex)
           console.log(anchorIndex)
         }
       },
       onShortcutTouchMove (e) {
         let firstTouch = e.touches[0]
         this.touch.y2 = firstTouch.pageY
+        console.log('h52:', firstTouch.pageY)
         // y 轴上的偏移像素
         let delta = this.touch.y2 - this.touch.y1
         // 得到有几个元素
@@ -93,16 +92,20 @@
           // 由于触摸和scroll事件不同，触摸是按照第一次触摸的点为起点，
           // 这个计算就会超过实际的索引大小
           anchorIndex = length - 1
+        } else if (anchorIndex < 0) {
+          anchorIndex = 0
         }
-        this.$refs.listview.scrollToElement(this.$refs.listGroup[anchorIndex])  // 滚动速度，0 是没有滚动动画
 
-        // 高亮元素
-        this.currentIndex = anchorIndex
+        this._scrollToElement(anchorIndex)
         console.log(delta, anchorIndex)
+      },
+      _scrollToElement (index) {
+        // 由于滚动特性，顶部是0，以下的都是负数，不然在触发watch.scrollY的时候会被认定为滚动到了列表最顶端
+        this.currentIndex = index
+        this.$refs.listview.scrollToElement(this.$refs.listGroup[index], 0)  // 滚动速度，0 是没有滚动动画
       },
       listScroll (pos) {
         this.scrollY = pos.y
-        console.log(pos)
       },
       // 计算每个group的高度（数据结构是按组进行聚合的）
       _calculateHeight () {
@@ -138,6 +141,7 @@
           this.currentIndex = 0
           return
         }
+        // 中部区域滚动
         let listHeight = this.listHeight
         for (let i = 0; i < listHeight.length; i++) {
           let height1 = listHeight[i]
@@ -147,15 +151,16 @@
           // 2. 在一个区间内
           if (!height2 || (y > height1 && y < height2)) {
             this.currentIndex = i
-            console.log(i)
             return
           }
         }
+        // 尾部区域
         this.currentIndex = 0
       }
     }
   }
 </script>
+
 
 <style scoped lang="stylus" rel="stylesheet/stylus">
   @import "~common/stylus/variable"
