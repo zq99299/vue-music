@@ -17,7 +17,7 @@
       </li>
     </ul>
     <div class="list-shortcut" @touchstart="onShortcutTouchStart"
-         @touchmove.stop.prevent="onShortcutTouchMove">
+         @touchmove.stop.prevent="onShortcutTouchMove" v-show="data.length">
       <ul>
         <li class="item"
             v-for="(item,index) in shortcutList"
@@ -26,16 +26,28 @@
         </li>
       </ul>
     </div>
+    <!--固定悬浮标题效果-->
+    <div class="list-fixed" ref="fixed">
+      <h1 class="fixed-title">{{ fixedTitle }}</h1>
+    </div>
+    <div class="loading-container" v-show="!data.length">
+      <loading></loading>
+    </div>
   </scroll>
 </template>
 
 <script type="text/ecmascript-6">
   import Scroll from 'base/scroll/Scroll'
   import { getData } from 'common/js/dom'
+  import Loading from 'base/loading/Loading'
 
   const ANCHOR_HEIGHT = 18  // 每个 list-shortcut 中 item的高度，18=item的字体12 + pading上下3*2
+  const TITLE_HEIGHT = 30 // 组标题高度，css样式计算出来的
 
   export default {
+    components: {
+      Scroll, Loading
+    },
     created () {
       // 为什么不在 data里面定义touch？
       // 因为在props中和data中定义的都会被vue监听用于数据的双向绑定
@@ -51,15 +63,19 @@
         default: []
       }
     },
-    components: {
-      Scroll
-    },
     computed: {
       // 快速入口列表集合
       shortcutList () {
         return this.data.map((group) => {
           return group.title.substring(0, 1)  // 热门有两个字，所以要截取掉
         })
+      },
+      // 固定标题悬浮效果 实时计算
+      fixedTitle () {
+        if (this.scrollY >= 0) {
+          return ''
+        }
+        return this.data[this.currentIndex] ? this.data[this.currentIndex].title : ''
       }
     },
     methods: {
@@ -125,7 +141,9 @@
         // 监控y轴的位置
         scrollY: -1,
         // 当前索引
-        currentIndex: 0
+        currentIndex: 0,
+        // 当从下网上滚动的时候，计算到即将到达滚动容器顶部的元素之间的距离
+        diff: -1
       }
     },
     watch: {
@@ -143,19 +161,37 @@
         }
         // 中部区域滚动
         let listHeight = this.listHeight
-        for (let i = 0; i < listHeight.length; i++) {
+        for (let i = 0; i < listHeight.length - 1; i++) {
           let height1 = listHeight[i]
           let height2 = listHeight[i + 1]
           let y = -newY // 滚动的话，向下滚动都是负数，从0开始
-          // 1. height2 有可能下标越界，获得undefined
+          // 1. height2 有可能下标越界，获得undefined,所以要么这里判定，要么循环次数减少1
           // 2. 在一个区间内
           if (!height2 || (y > height1 && y < height2)) {
             this.currentIndex = i
+
+            // 计算当前滚动的区域的下一个group的dom元素顶部 距离滚动容器顶部的距离
+            // 用来计算 过度效果的偏移像素
+            this.diff = height2 + newY
+            console.log('diff:', this.diff)
             return
           }
         }
         // 尾部区域
         this.currentIndex = 0
+      },
+      diff (newDiff) {
+        let fixedTop = (newDiff > 0 && newDiff < TITLE_HEIGHT) ? newDiff - TITLE_HEIGHT : 0
+
+        console.log('fixedTop:', fixedTop, 'newDiff:', newDiff)
+        // 当不在 TITLE_HEIGHT 范围内的时候，fixedTop 始终返回0.下面再把固定标题框移动到0的位置
+        // 且不再继续改变，只有在碰撞范围内，再继续碰撞的效果
+        if (this.fixedTop === fixedTop) {
+          return
+        }
+        console.log('---fixedTop:', fixedTop, 'newDiff:', newDiff)
+        this.fixedTop = fixedTop
+        this.$refs.fixed.style.transform = `translate3d(0,${fixedTop}px,0)`
       }
     }
   }
@@ -166,6 +202,7 @@
   @import "~common/stylus/variable"
 
   .list-view {
+    position relative // 为了限制住里面的一些元素的绝对定位只能在自己内部
     width: 100%
     height: 100%
     overflow hidden //这个应该写在父级里面限制这个listview的把。没有明白为什么写在这里也有效果
@@ -215,6 +252,25 @@
           color: $color-theme
         }
       }
+    }
+    .list-fixed {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      .fixed-title {
+        font-size: 12px;
+        line-height: 30px;
+        padding-left: 20px;
+        color: rgba(255, 255, 255, 0.5);
+        background: #333;
+      }
+    }
+    .loading-container {
+      position: absolute
+      width: 100%
+      top: 50%
+      transform: translateY(-50%)
     }
   }
 </style>
