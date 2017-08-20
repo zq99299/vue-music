@@ -5,7 +5,7 @@
     </div>
     <h1 class="title" v-html="title"></h1>
     <div class="bg-image" :style="bgStyle" ref="bgImage">
-      <div class="filter"></div>
+      <div class="filter" ref="filter"></div>
     </div>
     <div class="bg-layer" ref="bgLayer"></div>
     <scroll :data="songs" class="list" ref="list"
@@ -95,9 +95,29 @@
           bgImageStyle['padding-top'] = `70%`
           bgImageStyle['height'] = 0
           zindex = 0
-          console.log(`translateY:`, translateY, `newY:`, newY)
+          console.log(`translateY:`, translateY, `newY:`, newY, 'this.minTranslateY:', this.minTranslateY)
         }
-        this.$refs.bgImage.style['z-index'] = zindex
+
+        let percent = Math.abs(newY / this.bgImageHeight)
+        // 通过缩放来控制图片的大小
+        let scale = 1
+        let blur = 0
+        if (newY > 0) {
+          scale = 1 + percent
+          zindex = 10  // 解决在下拉的时候，图片虽然有放大缩小的效果，但是由于后来居上，覆盖了放大的显示部分
+        } else {
+          // 往上拉的时候，不能使用缩放了，因为图片可以放大，但是缩小的话，背景肯定铺不满容器了，很丑陋
+          // 那么实现一个高斯模糊的效果，越到顶部越模糊
+          blur = Math.min(20 * percent, 20) // 最大限制到20
+        }
+        // backdrop-filter 可能只有ios才能看到的高斯模糊效果
+        this.$refs.filter.style['backdrop-filter'] = `blur(${blur}px)`
+        this.$refs.filter.style['webkitBackdrop-filter'] = `blur(${blur}px)`
+
+        let bgImageStyle = this.$refs.bgImage.style
+        bgImageStyle['z-index'] = zindex
+        bgImageStyle['transform'] = `scale(${scale})`
+        bgImageStyle['webkitTransform'] = `scale(${scale})`
       }
     }
   }
