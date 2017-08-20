@@ -2,6 +2,7 @@ import 'babel-polyfill'  // es6 到 es5 的补丁转换
 import Vue from 'vue'
 import App from './App'
 import router from './router'
+import store from './store'
 
 Vue.config.productionTip = false
 
@@ -21,6 +22,7 @@ Vue.use(vueLazyload, {
 new Vue({
   el: '#app',
   router,
+  store,
   render: h => h(App)
 })
 // 上面的 render: h => h(App) 中的h是createElement函数，是es6的简写语法

@@ -12,6 +12,8 @@
   import { ERR_OK } from 'api/config.js'
   import ListView from 'base/listview/ListView'
   import Singer from 'common/js/singer'
+  // 语法糖，对mutations做了一层封装，减少代码量
+  import { mapMutations } from 'vuex'
 
   // 每个分组都有一个名称
   const HOT_NAME = '热门'
@@ -33,6 +35,7 @@
         this.$router.push({
           path: `/singer/${singer.id}`
         })
+        this.setSinger(singer)
       },
       _getSingerList () {
         getSinger().then((res) => {
@@ -99,7 +102,11 @@
         })
         // 再把两个数组链接起来,合并成一个
         return hot.concat(ret)
-      }
+      },
+      // 映射，把mutations.js中定义的SET_SINGER映射成一个setSinger方法
+      ...mapMutations({
+        setSinger: 'SET_SINGER'
+      })
     }
   }
 </script>
