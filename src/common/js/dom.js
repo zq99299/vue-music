@@ -40,3 +40,37 @@ export function getData (el, name, val) {
     return el.getAttribute(name)
   }
 }
+
+// 能力检测
+let elementStyle = document.createElement('div').style
+// 供应商,一个立即执行函数
+let vendor = (() => {
+  let transformNames = {
+    webkit: 'webkitTransform',
+    Moz: 'MozTransform',
+    ms: 'msTransform',
+    standard: 'transform'  // 标准
+  }
+
+  // 查看dom的style里面是否包含这个属性，包含则返回
+  for (let key in transformNames) {
+    if (elementStyle[transformNames[key]] !== undefined) {
+      return key
+    }
+  }
+  // 所有的前缀都不支持的话，就有问题了
+  return false
+})()
+
+export function prefixStyle (style) {
+  if (vendor === false) {
+    return false
+  }
+
+  if (vendor === 'standard') {
+    return style
+  }
+
+  // 加上前缀，首字母大写，比如：transform 加工之后返回 webkitTransform
+  return vendor + style.charAt(0).toUpperCase() + style.substr(1)
+}

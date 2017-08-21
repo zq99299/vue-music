@@ -1,10 +1,16 @@
 <template>
   <div class="music-list">
-    <div class="back">
+    <div class="back" @click="back">
       <i class="icon-back"></i>
     </div>
     <h1 class="title" v-html="title"></h1>
     <div class="bg-image" :style="bgStyle" ref="bgImage">
+      <div class="play-wrapper" v-show="songs.length >0" ref="playBtn">
+        <div class="play">
+          <i class="icon-play"></i>
+          <span class="text">随机播放全部</span>
+        </div>
+      </div>
       <div class="filter" ref="filter"></div>
     </div>
     <div class="bg-layer" ref="bgLayer"></div>
@@ -16,6 +22,9 @@
       <div class="song-list-wrapper">
         <song-list :songs="songs"></song-list>
       </div>
+      <div class="loading-container" v-show="!songs.length">
+        <loading></loading>
+      </div>
     </scroll>
   </div>
 </template>
@@ -23,13 +32,17 @@
 <script type="text/ecmascript-6">
   import SongList from 'base/song-list/song-list'
   import Scroll from 'base/scroll/Scroll'
+  import { prefixStyle } from 'common/js/dom'
+  import Loading from 'base/loading/Loading'
 
   // 顶部留出多高的距离不能滚动
   const RESERVED_HEIGHT = 40
+  const transform = prefixStyle('transform')
+  const backdropFilter = prefixStyle('backdrop-filter')
 
   export default {
     components: {
-      Scroll, SongList
+      Scroll, SongList, Loading
     },
     props: {
       // 背景图
@@ -76,6 +89,9 @@
     methods: {
       listScroll (pos) {
         this.scrollY = pos.y
+      },
+      back () {
+        this.$router.back()
       }
     },
     watch: {
@@ -87,14 +103,16 @@
           bgImageStyle['padding-top'] = 0
           bgImageStyle['height'] = `${RESERVED_HEIGHT}px`
           zindex = 10
+          this.$refs.playBtn.style.display = 'none'
           console.log(`  --- translateY:`, translateY, `newY:`, newY)
         } else {
           // 让背景层跟着网上移动
-          this.$refs.bgLayer.style['transform'] = `translate3d(0,${translateY}px,0)`
+          this.$refs.bgLayer.style[transform] = `translate3d(0,${translateY}px,0)`
           let bgImageStyle = this.$refs.bgImage.style
           bgImageStyle['padding-top'] = `70%`
           bgImageStyle['height'] = 0
           zindex = 0
+          this.$refs.playBtn.style.display = ''
           console.log(`translateY:`, translateY, `newY:`, newY, 'this.minTranslateY:', this.minTranslateY)
         }
 
@@ -111,13 +129,11 @@
           blur = Math.min(20 * percent, 20) // 最大限制到20
         }
         // backdrop-filter 可能只有ios才能看到的高斯模糊效果
-        this.$refs.filter.style['backdrop-filter'] = `blur(${blur}px)`
-        this.$refs.filter.style['webkitBackdrop-filter'] = `blur(${blur}px)`
+        this.$refs.filter.style[backdropFilter] = `blur(${blur}px)`
 
         let bgImageStyle = this.$refs.bgImage.style
         bgImageStyle['z-index'] = zindex
-        bgImageStyle['transform'] = `scale(${scale})`
-        bgImageStyle['webkitTransform'] = `scale(${scale})`
+        bgImageStyle[transform] = `scale(${scale})`
       }
     }
   }
@@ -175,6 +191,34 @@
         width 100%
         height 100%
         background rgba(7, 17, 27, 0.4)
+      }
+      .play-wrapper {
+        position absolute
+        bottom 20px
+        z-index 50
+        width 100%
+        .play {
+          box-sizing border-box
+          border 1px solid $color-theme
+          width 135px
+          border-radius 100px
+          padding 7px 0
+          margin 0 auto //外部宽度百分白，内部宽度定死，然后 margin auto 水平居中
+          text-align center // 然后让内部的文字和图标居中
+          font-size 0
+          color: $color-theme
+          .icon-play {
+            display inline-block
+            vertical-align middle
+            margin-right 6px
+            font-size $font-size-medium-x
+          }
+          .text {
+            display inline-block
+            vertical-align middle
+            font-size $font-size-small
+          }
+        }
       }
     }
     .bg-layer {
