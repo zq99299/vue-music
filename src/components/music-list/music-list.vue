@@ -20,7 +20,7 @@
             @scroll="listScroll"
     >
       <div class="song-list-wrapper">
-        <song-list :songs="songs"></song-list>
+        <song-list :songs="songs" @select="selectItem"></song-list>
       </div>
       <div class="loading-container" v-show="!songs.length">
         <loading></loading>
@@ -34,6 +34,8 @@
   import Scroll from 'base/scroll/Scroll'
   import { prefixStyle } from 'common/js/dom'
   import Loading from 'base/loading/Loading'
+  // node_modules/vuex/types/helpers.d.ts 在这个文件中 有语法糖的名称
+  import { mapActions } from 'vuex'
 
   // 顶部留出多高的距离不能滚动
   const RESERVED_HEIGHT = 40
@@ -87,11 +89,20 @@
       }
     },
     methods: {
+      ...mapActions([
+        'selectPlay'
+      ]),
       listScroll (pos) {
         this.scrollY = pos.y
       },
       back () {
         this.$router.back()
+      },
+      selectItem (item, index) {
+        this.selectPlay({
+          list: this.songs,
+          index
+        })
       }
     },
     watch: {

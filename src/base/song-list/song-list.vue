@@ -1,7 +1,7 @@
 <template>
   <div class="song-list">
     <ul>
-      <li class="item" v-for="song in songs">
+      <li class="item" v-for="(song,index) in songs" @click="selectItem(song,index)">
         <div class="content">
           <h2 class="name">{{song.name }}</h2>
           <p class="desc">{{ getDesc(song) }}</p>
@@ -27,6 +27,9 @@
       //  所以这里可以使用过滤器，也可以使用函数（这样使用还是第一次）
       getDesc (song) {
         return `${song.singer} . ${song.album}`
+      },
+      selectItem (item, index) {
+        this.$emit('select', item, index)
       }
     }
   }
