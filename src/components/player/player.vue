@@ -24,7 +24,7 @@
         <div class="middle">
           <div class="middle-l">
             <div class="cd-wrapper" ref="cdWrapper">
-              <div class="cd" :class="cdClass">
+              <div class="cd play" :class="cdClass">
                 <img class="image" :src="currentSong.image">
               </div>
             </div>
@@ -36,14 +36,14 @@
             <div class="icon i-left">
               <i class="icon-sequence"></i>
             </div>
-            <div class="icon i-left">
-              <i class="icon-prev"></i>
+            <div class="icon i-left" :class="disableClass">
+              <i class="icon-prev" @click="prev"></i>
             </div>
-            <div class="icon i-center">
+            <div class="icon i-center" :class="disableClass">
               <i :class="playIcon" @click="togglePlaying"></i>
             </div>
-            <div class="icon i-right">
-              <i class="icon-next"></i>
+            <div class="icon i-right" :class="disableClass">
+              <i class="icon-next" @click="next"></i>
             </div>
             <div class="icon i-right">
               <i class="icon-not-favorite"></i>
@@ -69,7 +69,7 @@
         </div>
       </div>
     </transition>
-    <audio ref="audio" :src="currentSong.url"></audio>
+    <audio ref="audio" :src="currentSong.url" @canplay="ready" @error="error"></audio>
   </div>
 </template>
 
@@ -81,14 +81,17 @@
   const transform = prefixStyle('transform')
   export default {
     data () {
-      return {}
+      return {
+        songReady: false // 歌曲是否已经准备好，可以播放了？
+      }
     },
     computed: {
       ...mapGetters([
         'fullScreen',
         'playlist',
         'currentSong',
-        'playing'
+        'playing',
+        'currentIndex'
       ]),
       playIcon () {
         return this.playing ? 'icon-pause' : 'icon-play'
@@ -98,6 +101,9 @@
       },
       cdClass () {
         return this.playing ? 'play' : 'pause'  // 播放的时候 让cd旋转
+      },
+      disableClass () {
+        return this.songReady ? '' : 'disable'
       }
     },
     methods: {
@@ -105,7 +111,8 @@
       // 但是 我们一般的习惯是 方法名驼峰写法，所以要映射
       ...mapMutations({
         setFullScreen: 'SET_FULL_SCREEN',
-        setPlaying: 'SET_PLAYING'
+        setPlaying: 'SET_PLAYING',
+        setCurrentIndex: 'SET_CURRENT_INDEX'
       }),
       back () {
         this.setFullScreen(false)
@@ -176,11 +183,48 @@
       togglePlaying () {
         // 更改vuex中的playing值,还要编写控制Audio停止播放的代码，所以在watch中去监听这个播放状态
         this.setPlaying(!this.playing)
+      },
+      prev () {
+        // 在快速点击 上/下一首的时候，也会出现 Uncaught (in promise) DOMException: The play() request was interrupted by a new load request. 错误
+        // 这个错误可能也是因为dom刷新不及时造成的。
+        // 那么就要在歌曲可以播放后，才能点击上/下一首的功能
+        if (!this.songReady) {
+          return
+        }
+        this.setCurrentIndex(this.currentIndex - 1)
+        // 处理边界
+        // 在顺序播放模式下才有这样的边界首尾相链接的处理
+        if (this.currentIndex === -1) {
+          this.setCurrentIndex(this.playlist.length - 1)
+        }
+        // 还要处理一种情况，如果 歌曲现在是暂停状态，上/下一首之后也需要切换到播放状态
+        if (!this.playing) {
+          this.togglePlaying()
+        }
+      },
+      next () {
+        if (!this.songReady) {
+          return
+        }
+        this.setCurrentIndex(this.currentIndex + 1)
+        if (this.currentIndex === this.playlist.length) {
+          this.setCurrentIndex(0)
+        }
+        if (!this.playing) {
+          this.togglePlaying()
+        }
+      },
+      ready () {
+        this.songReady = true
+      },
+      error () {
+        this.songReady = true
       }
     },
     watch: {
       // 当前歌曲变化的时候 播放歌曲
       currentSong () {
+        this.songReady = false
         // 在dom没有变化之前调用play会出错，所以使用vue提供的dom更新后调用
         this.$nextTick(() => {
           this.$refs.audio.play()
@@ -268,6 +312,7 @@
         // 所以 middle-l 的高是 宽度的 80%，而 cd-wrapper的高为100%也就是和 middle-l的高一致
         // 而 cd-wrapper de 宽为80%,那么就和middle-l的高度一致，正方形
           padding-top: 80%
+          height 0
           .cd-wrapper {
             position: absolute
             left: 10% // 左右10% + 宽80% 刚好让这个容器居中
@@ -277,9 +322,9 @@
             .cd {
               width 100%
               height 100%
+              box-sizing border-box // 任何内边距和边框都将在已设定的宽度和高度内进行绘制。让绘制的圆形始终在限制的高度内
               border 10px solid rgba(255, 255, 255, 0.1)
               border-radius: 50%
-              box-sizing border-box // 任何内边距和边框都将在已设定的宽度和高度内进行绘制。让绘制的圆形始终在限制的高度内
               &.play {
                 animation: rotate 20s linear infinite
               }
