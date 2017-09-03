@@ -34,7 +34,9 @@
         <div class="bottom">
           <div class="progress-wrapper">
             <span class="time time-l">{{format(currentTime)}}</span>
-            <div class="progress-bar-wrapper"></div>
+            <div class="progress-bar-wrapper">
+              <progress-bar :percent="progressPercent"></progress-bar>
+            </div>
             <span class="time time-r">{{format(currentSong.duration)}}</span>
           </div>
           <div class="operators">
@@ -86,8 +88,13 @@
   import animations from 'create-keyframe-animation'
   import { prefixStyle } from '@/common/js/dom.js'
 
+  import ProgressBar from '@/base/progress-bar/progress-bar'
+
   const transform = prefixStyle('transform')
   export default {
+    components: {
+      ProgressBar
+    },
     data () {
       return {
         songReady: false, // 歌曲是否已经准备好，可以播放了？
@@ -113,6 +120,12 @@
       },
       disableClass () {
         return this.songReady ? '' : 'disable'
+      },
+      progressPercent () {
+        // 进度条百分比 = 当前时间/总时间
+        const percent = this.currentTime / this.currentSong.duration
+        console.log(percent)
+        return percent
       }
     },
     methods: {
