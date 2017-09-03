@@ -1,7 +1,12 @@
 <template>
   <!--主要分为两大块内容：1. 全屏播放器 2， 迷你播放器-->
   <div class="player" v-show="playlist.length >0">
-    <transition name="normal">
+    <transition name="normal"
+                @enter="enter"
+                @after-enter="afterEnter"
+                @leave="leave"
+                @after-leave="afterLeave"
+    >
       <div class="normal-player" v-show="fullScreen">
         <!--背景图-->
         <div class="background">
@@ -18,8 +23,8 @@
         <!--唱片转动效果-->
         <div class="middle">
           <div class="middle-l">
-            <div class="cd-wrapper">
-              <div class="cd">
+            <div class="cd-wrapper" ref="cdWrapper">
+              <div class="cd" :class="cdClass">
                 <img class="image" :src="currentSong.image">
               </div>
             </div>
@@ -35,7 +40,7 @@
               <i class="icon-prev"></i>
             </div>
             <div class="icon i-center">
-              <i class="icon-play"></i>
+              <i :class="playIcon" @click="togglePlaying"></i>
             </div>
             <div class="icon i-right">
               <i class="icon-next"></i>
@@ -50,24 +55,30 @@
     <transition name="mini">
       <div class="mini-player" v-show="!fullScreen" @click="open">
         <div class="icon">
-          <img width="40" height="40" :src="currentSong.image">
+          <img width="40" height="40" :src="currentSong.image" :class="cdClass">
         </div>
         <div class="text">
           <h2 class="name" v-html="currentSong.name"></h2>
           <p class="desc">{{currentSong.singer}}</p>
         </div>
-        <div class="control"></div>
+        <div class="control">
+          <i :class="miniIcon" @click.stop="togglePlaying"></i>
+        </div>
         <div class="control">
           <i class="icon-playlist"></i>
         </div>
       </div>
     </transition>
+    <audio ref="audio" :src="currentSong.url"></audio>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
   import { mapGetters, mapMutations } from 'vuex'
+  import animations from 'create-keyframe-animation'
+  import { prefixStyle } from '@/common/js/dom.js'
 
+  const transform = prefixStyle('transform')
   export default {
     data () {
       return {}
@@ -76,20 +87,111 @@
       ...mapGetters([
         'fullScreen',
         'playlist',
-        'currentSong'
-      ])
+        'currentSong',
+        'playing'
+      ]),
+      playIcon () {
+        return this.playing ? 'icon-pause' : 'icon-play'
+      },
+      miniIcon () {
+        return this.playing ? 'icon-pause-mini' : 'icon-play-mini'
+      },
+      cdClass () {
+        return this.playing ? 'play' : 'pause'  // 播放的时候 让cd旋转
+      }
     },
     methods: {
       // 这里也可以像上面那样简写
       // 但是 我们一般的习惯是 方法名驼峰写法，所以要映射
       ...mapMutations({
-        setFullScreen: 'SET_FULL_SCREEN'
+        setFullScreen: 'SET_FULL_SCREEN',
+        setPlaying: 'SET_PLAYING'
       }),
       back () {
         this.setFullScreen(false)
       },
       open () {
         this.setFullScreen(true)
+      },
+      enter (el, done) {
+        // 进入的时候，让小cd飞入大cd位置，过程了先慢慢放大最后再缩小成大cd效果
+        const {x, y, scale} = this._getPosAndScale()
+        let animation = {
+          0: {
+            // 动画开始，让大cd缩小成小cd一致，且把自己移动到小cd位置处
+            transform: `translate3d(${x}px,${y}px,0) scale(${scale})`
+          },
+          60: {
+            // 移动回大cd原来的位置，且cd放大一点点
+            transform: `translate3d(0,0,0) scale(1.1)`
+          },
+          100: {
+            // 最后大cd还原成原来的大小
+            transform: `translate3d(0,0,0) scale(1)`
+          }
+        }
+
+        animations.registerAnimation({
+          name: 'move',
+          animation,
+          presets: {
+            duration: 400,
+            easing: 'linear'
+          }
+        })
+
+        animations.runAnimation(this.$refs.cdWrapper, 'move', done)
+      },
+      afterEnter () {
+        this.$refs.cdWrapper.style.animation = ''
+      },
+      leave (el, done) {
+        // 离开的收，让大cd缩小移动到小cd处
+        this.$refs.cdWrapper.style.transition = 'all 0.4s'
+        const {x, y, scale} = this._getPosAndScale()
+        this.$refs.cdWrapper.style[transform] = `translate3d(${x}px,${y}px,0) scale(${scale})`
+        // 动画执行完成的时候调用
+        this.$refs.cdWrapper.addEventListener('transitionend', done)
+      },
+      afterLeave () {
+        this.$refs.cdWrapper.style.transition = ''
+        this.$refs.cdWrapper.style[transform] = ''
+      },
+      // 获取大cd圆心点移动和缩放到小cd圆心点的位置和缩小比例
+      _getPosAndScale () {
+        let miniLeftPadding = 40 / 2 + 20  // 迷你播放器的图形40px，paddingLeft=20,小图片中心点距离左边就是40
+        let miniBottomPadding = 60 / 2  // mini-player 元素高60，图片是居中的，所以中心点距离底部30
+        let normalTopPadding = 80 // middle 元素距离顶部80
+        let normalWidth = window.innerWidth * 0.8 // cd-wrapper 的宽是容器的百分之80,容器是圆形（正方形）所以宽高一致
+        let miniWidth = 40 // 迷你播放器图形宽度（因为是圆形所以宽高一致）
+        let scale = miniWidth / normalWidth  // 小图形占比大图形的比例
+
+        let x = -(window.innerWidth / 2 - miniLeftPadding)
+        let y = window.innerHeight - normalTopPadding - miniBottomPadding - normalWidth / 2
+        return {
+          x, y, scale
+        }
+      },
+      /* 切换播放状态  */
+      togglePlaying () {
+        // 更改vuex中的playing值,还要编写控制Audio停止播放的代码，所以在watch中去监听这个播放状态
+        this.setPlaying(!this.playing)
+      }
+    },
+    watch: {
+      // 当前歌曲变化的时候 播放歌曲
+      currentSong () {
+        // 在dom没有变化之前调用play会出错，所以使用vue提供的dom更新后调用
+        this.$nextTick(() => {
+          this.$refs.audio.play()
+        })
+      },
+      playing (staus) {
+        // 这里暂时没有发现 有报错，可能和浏览器版本有关吧
+        console.log(staus)  // 通过增加日志定位异常
+        this.$nextTick(() => {
+          staus ? this.$refs.audio.play() : this.$refs.audio.pause()
+        })
       }
     }
   }
@@ -299,12 +401,12 @@
           font-size: 30px
           color: $color-theme-d
         }
-        /* .icon-mini {
-           font-size: 32px
-           position: absolute
-           left: 0
-           top: 0
-         }*/
+        .icon-mini {
+          font-size: 32px
+          position: absolute
+          left: 0
+          top: 0
+        }
       }
       &.mini-enter-active, &.mini-leave-active {
         transition all 0.4s
