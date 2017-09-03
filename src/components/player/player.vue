@@ -24,7 +24,7 @@
         <div class="middle">
           <div class="middle-l">
             <div class="cd-wrapper" ref="cdWrapper">
-              <div class="cd play" :class="cdClass">
+              <div class="cd" :class="cdClass">
                 <img class="image" :src="currentSong.image">
               </div>
             </div>
@@ -32,6 +32,11 @@
         </div>
         <!--底部操作区-->
         <div class="bottom">
+          <div class="progress-wrapper">
+            <span class="time time-l">{{format(currentTime)}}</span>
+            <div class="progress-bar-wrapper"></div>
+            <span class="time time-r">{{format(currentSong.duration)}}</span>
+          </div>
           <div class="operators">
             <div class="icon i-left">
               <i class="icon-sequence"></i>
@@ -69,7 +74,10 @@
         </div>
       </div>
     </transition>
-    <audio ref="audio" :src="currentSong.url" @canplay="ready" @error="error"></audio>
+    <audio ref="audio" :src="currentSong.url"
+           @canplay="ready" @error="error"
+           @timeupdate="timeupdate"
+    ></audio>
   </div>
 </template>
 
@@ -82,7 +90,8 @@
   export default {
     data () {
       return {
-        songReady: false // 歌曲是否已经准备好，可以播放了？
+        songReady: false, // 歌曲是否已经准备好，可以播放了？
+        currentTime: 0
       }
     },
     computed: {
@@ -137,7 +146,9 @@
             transform: `translate3d(0,0,0) scale(1)`
           }
         }
-
+        console.log({
+          [transform]: 'xx'
+        })
         animations.registerAnimation({
           name: 'move',
           animation,
@@ -219,6 +230,31 @@
       },
       error () {
         this.songReady = true
+      },
+      timeupdate (e) {
+        this.currentTime = e.target.currentTime
+      },
+      /** 格式化时间,单位秒,返回 00:59  这样的 分:秒 字符串 */
+      format (interval) {
+        interval = interval | 0  // 向下取整,同函数Math.floor(7/2)相同功能
+        const minute = interval / 60 | 0
+        const second = interval % 60
+        // 这里有一个问题，返回的秒小于10的时候没有补0填充，需要编写一个工具方法补0
+        return `${minute}:${this._pad(second)}`
+      },
+      /*  pad 有填充的意思
+       *  num : 数字
+       *  n : 要填充的位数
+       */
+      _pad (num, n = 2) {
+        // 这里针对秒做补零操作
+        let len = num.toString().length
+        let result = num
+        while (len < n) {
+          result = '0' + result
+          len++
+        }
+        return result
       }
     },
     watch: {
@@ -325,7 +361,7 @@
               box-sizing border-box // 任何内边距和边框都将在已设定的宽度和高度内进行绘制。让绘制的圆形始终在限制的高度内
               border 10px solid rgba(255, 255, 255, 0.1)
               border-radius: 50%
-              &.play {
+              &.play, &.pause {
                 animation: rotate 20s linear infinite
               }
               &.pause {
@@ -377,6 +413,28 @@
             color: $color-sub-theme
           }
         }
+        .progress-wrapper {
+          display flex
+          align-items: center
+          width 80%
+          margin 0 auto
+          padding 10px 0
+          .time {
+            flex 0 0 30px
+            color $color-text
+            font-size $font-size-small
+            line-height 30px
+            &.time-l {
+              text-align left
+            }
+            &.time-r {
+              text-align right
+            }
+          }
+          .progress-bar-wrapper {
+            flex 1
+          }
+        }
       }
     // 定义进入和离开过度状态，这个类中可以定义过程时间，延迟和曲线函数。
       &.normal-enter-active, &.normal-leave-active {
@@ -411,7 +469,7 @@
         padding: 0 10px 0 20px
         img {
           border-radius 50%
-          &.play {
+          &.play, &.pause {
             animation: rotate 10s linear infinite
           }
           &.pause {
