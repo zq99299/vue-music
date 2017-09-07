@@ -35,7 +35,7 @@
           <div class="progress-wrapper">
             <span class="time time-l">{{format(currentTime)}}</span>
             <div class="progress-bar-wrapper">
-              <progress-bar :percent="progressPercent"></progress-bar>
+              <progress-bar :percent="progressPercent" @percentChange="onPercentChange"></progress-bar>
             </div>
             <span class="time time-r">{{format(currentSong.duration)}}</span>
           </div>
@@ -84,9 +84,9 @@
 </template>
 
 <script type="text/ecmascript-6">
-  import { mapGetters, mapMutations } from 'vuex'
+  import {mapGetters, mapMutations} from 'vuex'
   import animations from 'create-keyframe-animation'
-  import { prefixStyle } from '@/common/js/dom.js'
+  import {prefixStyle} from '@/common/js/dom.js'
 
   import ProgressBar from '@/base/progress-bar/progress-bar'
 
@@ -95,7 +95,7 @@
     components: {
       ProgressBar
     },
-    data () {
+    data() {
       return {
         songReady: false, // 歌曲是否已经准备好，可以播放了？
         currentTime: 0
@@ -109,22 +109,22 @@
         'playing',
         'currentIndex'
       ]),
-      playIcon () {
+      playIcon() {
         return this.playing ? 'icon-pause' : 'icon-play'
       },
-      miniIcon () {
+      miniIcon() {
         return this.playing ? 'icon-pause-mini' : 'icon-play-mini'
       },
-      cdClass () {
+      cdClass() {
         return this.playing ? 'play' : 'pause'  // 播放的时候 让cd旋转
       },
-      disableClass () {
+      disableClass() {
         return this.songReady ? '' : 'disable'
       },
-      progressPercent () {
+      progressPercent() {
         // 进度条百分比 = 当前时间/总时间
         const percent = this.currentTime / this.currentSong.duration
-        console.log(percent)
+//        console.log(percent)
         return percent
       }
     },
@@ -136,13 +136,13 @@
         setPlaying: 'SET_PLAYING',
         setCurrentIndex: 'SET_CURRENT_INDEX'
       }),
-      back () {
+      back() {
         this.setFullScreen(false)
       },
-      open () {
+      open() {
         this.setFullScreen(true)
       },
-      enter (el, done) {
+      enter(el, done) {
         // 进入的时候，让小cd飞入大cd位置，过程了先慢慢放大最后再缩小成大cd效果
         const {x, y, scale} = this._getPosAndScale()
         let animation = {
@@ -159,9 +159,6 @@
             transform: `translate3d(0,0,0) scale(1)`
           }
         }
-        console.log({
-          [transform]: 'xx'
-        })
         animations.registerAnimation({
           name: 'move',
           animation,
@@ -173,10 +170,10 @@
 
         animations.runAnimation(this.$refs.cdWrapper, 'move', done)
       },
-      afterEnter () {
+      afterEnter() {
         this.$refs.cdWrapper.style.animation = ''
       },
-      leave (el, done) {
+      leave(el, done) {
         // 离开的收，让大cd缩小移动到小cd处
         this.$refs.cdWrapper.style.transition = 'all 0.4s'
         const {x, y, scale} = this._getPosAndScale()
@@ -184,12 +181,12 @@
         // 动画执行完成的时候调用
         this.$refs.cdWrapper.addEventListener('transitionend', done)
       },
-      afterLeave () {
+      afterLeave() {
         this.$refs.cdWrapper.style.transition = ''
         this.$refs.cdWrapper.style[transform] = ''
       },
       // 获取大cd圆心点移动和缩放到小cd圆心点的位置和缩小比例
-      _getPosAndScale () {
+      _getPosAndScale() {
         let miniLeftPadding = 40 / 2 + 20  // 迷你播放器的图形40px，paddingLeft=20,小图片中心点距离左边就是40
         let miniBottomPadding = 60 / 2  // mini-player 元素高60，图片是居中的，所以中心点距离底部30
         let normalTopPadding = 80 // middle 元素距离顶部80
@@ -204,11 +201,11 @@
         }
       },
       /* 切换播放状态  */
-      togglePlaying () {
+      togglePlaying() {
         // 更改vuex中的playing值,还要编写控制Audio停止播放的代码，所以在watch中去监听这个播放状态
         this.setPlaying(!this.playing)
       },
-      prev () {
+      prev() {
         // 在快速点击 上/下一首的时候，也会出现 Uncaught (in promise) DOMException: The play() request was interrupted by a new load request. 错误
         // 这个错误可能也是因为dom刷新不及时造成的。
         // 那么就要在歌曲可以播放后，才能点击上/下一首的功能
@@ -226,7 +223,7 @@
           this.togglePlaying()
         }
       },
-      next () {
+      next() {
         if (!this.songReady) {
           return
         }
@@ -238,17 +235,17 @@
           this.togglePlaying()
         }
       },
-      ready () {
+      ready() {
         this.songReady = true
       },
-      error () {
+      error() {
         this.songReady = true
       },
-      timeupdate (e) {
+      timeupdate(e) {
         this.currentTime = e.target.currentTime
       },
       /** 格式化时间,单位秒,返回 00:59  这样的 分:秒 字符串 */
-      format (interval) {
+      format(interval) {
         interval = interval | 0  // 向下取整,同函数Math.floor(7/2)相同功能
         const minute = interval / 60 | 0
         const second = interval % 60
@@ -259,7 +256,7 @@
        *  num : 数字
        *  n : 要填充的位数
        */
-      _pad (num, n = 2) {
+      _pad(num, n = 2) {
         // 这里针对秒做补零操作
         let len = num.toString().length
         let result = num
@@ -268,20 +265,32 @@
           len++
         }
         return result
+      },
+      // 进度条被拖动改变的时候
+      onPercentChange(percent) {
+        // 控制audio的播放器歌曲时间
+        let currentTime = this.currentSong.duration * percent
+        console.log(currentTime, ' total:', this.currentSong.duration)
+        this.$refs.audio.currentTime = currentTime
+        if (!this.playing) {  // 暂停状态，在拖动后直接开始播放
+          this.togglePlaying()
+        }
+
+        // 在这里还有一个现象，待后面的功能解决：拖动到最后，则发现歌曲不播放了，在其他的播放器中拖动进度条在最后，就应该是切下一首歌曲了
       }
     },
     watch: {
       // 当前歌曲变化的时候 播放歌曲
-      currentSong () {
+      currentSong() {
         this.songReady = false
         // 在dom没有变化之前调用play会出错，所以使用vue提供的dom更新后调用
         this.$nextTick(() => {
           this.$refs.audio.play()
         })
       },
-      playing (staus) {
+      playing(staus) {
         // 这里暂时没有发现 有报错，可能和浏览器版本有关吧
-        console.log(staus)  // 通过增加日志定位异常
+        // console.log(staus)  // 通过增加日志定位异常
         this.$nextTick(() => {
           staus ? this.$refs.audio.play() : this.$refs.audio.pause()
         })
