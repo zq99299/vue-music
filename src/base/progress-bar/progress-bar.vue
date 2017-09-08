@@ -1,5 +1,5 @@
 <template>
-  <div class="progress-bar" ref="progressBar">
+  <div class="progress-bar" ref="progressBar" @click="progressClick">
     <div class="bar-inner">
       <div class="progress" ref="progress"></div>
       <div class="progress-btn-wrapper" ref="progressBtnWrapper"
@@ -86,6 +86,13 @@
       _triggerPercent() {
         let percent = this.$refs.progress.clientWidth / this._getProgressBarWidth()
         this.$emit('percentChange', percent)
+      },
+      progressClick(e) {
+        // offsetX/y 能反应在当前dom上点击的左边，x轴，所以x轴的值就是 要移动到的宽度
+        let progressWidth = Math.min(e.offsetX, this._getProgressBarWidth())
+        this._setProgressWidth(progressWidth)
+        console.log(progressWidth)
+        this._triggerPercent()
       }
     }
   }
