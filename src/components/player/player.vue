@@ -303,8 +303,8 @@
         } else {
           list = this.sequenceList
         }
-        this.setPlayList(list)
         this._resetCurrentIndex(list)
+        this.setPlayList(list)
       },
       _resetCurrentIndex (list) {
         let songId = this.currentSong.id
@@ -316,6 +316,7 @@
         // 因为在shuffle中现在的实现是在原来的列表中打乱顺序的，他们的内存地址一样
         // 所以 为什么 还会触发watch中的currentSong事件呢？没有搞明白
         // 但是现象就是这样的
+        console.log('CurrentIndex:', this.currentIndex, ' :findIndex:', index)
         this.setCurrentIndex(index)
       },
       // 歌曲播放结束
