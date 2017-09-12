@@ -81,6 +81,7 @@
     <audio ref="audio" :src="currentSong.url"
            @canplay="ready" @error="error"
            @timeupdate="timeupdate"
+           @ended="onended"
     ></audio>
   </div>
 </template>
@@ -316,6 +317,19 @@
         // 所以 为什么 还会触发watch中的currentSong事件呢？没有搞明白
         // 但是现象就是这样的
         this.setCurrentIndex(index)
+      },
+      // 歌曲播放结束
+      onended () {
+        if (this.mode === playMode.loop) {
+          // 如果是循环播放，则歌曲单曲循环 -- 尼玛，原来是单曲循环
+          this.loop()
+        } else {
+          this.next()
+        }
+      },
+      loop () {
+        this.$refs.audio.currentTime = 0
+        this.$refs.audio.play()
       }
     },
     watch: {

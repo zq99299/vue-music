@@ -25,7 +25,7 @@
         default: 0
       }
     },
-    created() {
+    created () {
       // 先创建属性，否则 在后面的操作中很有可能不确定先后顺序，造成未定义空指针异常
       this.touch = {
         isMoving: false,
@@ -33,11 +33,11 @@
         left: 0
       }
     },
-    data() {
+    data () {
       return {}
     },
     watch: {
-      percent(newPercent) {
+      percent (newPercent) {
         // 1. 获取背景进度条的宽度
         // 2. 百分比 * 背景进度条的宽度就是进度条现在的宽度
         // 3. 设置进度条的宽度
@@ -52,21 +52,21 @@
       }
     },
     methods: {
-      _getProgressBarWidth() {
+      _getProgressBarWidth () {
         // 进度条该滚动的宽度：进度条 + 圆形按钮 在视觉上刚好等于 背景进度条的宽度，但是圆形按钮移动的位置要减去半径（中心点移动）
         return this.$refs.progressBar.clientWidth - PROGRESS_BTN_WIDTH / 2
       },
-      _setProgressWidth(progressWidth) {
+      _setProgressWidth (progressWidth) {
         this.$refs.progress.style.width = `${progressWidth}px`
         // 圆形按钮移动
         this.$refs.progressBtnWrapper.style.transform = `translateX(${progressWidth}px)`
       },
-      onTouchStart(e) {
+      onTouchStart (e) {
         this.touch.isMoving = true // 标识在移动中
         this.touch.startX = e.touches[0].pageX // 记录移动的起始点
         this.touch.left = this.$refs.progress.clientWidth // 记录移动开始时的进度条当前的宽度
       },
-      onTouchMove(e) {
+      onTouchMove (e) {
         if (!this.touch.isMoving) {
           return
         }
@@ -78,18 +78,23 @@
         progressWidth = Math.min(this._getProgressBarWidth(), progressWidth) // 有可能超过了 进度条的宽度，所以最大为进度条的宽度
         this._setProgressWidth(progressWidth)
       },
-      onTouchEnd() {
+      onTouchEnd () {
         this.touch.isMoving = false // 标识移动结束
         // 并告诉外部当前滚动条新的百分比位置
         this._triggerPercent()
       },
-      _triggerPercent() {
+      _triggerPercent () {
         let percent = this.$refs.progress.clientWidth / this._getProgressBarWidth()
         this.$emit('percentChange', percent)
       },
-      progressClick(e) {
+      progressClick (e) {
         // offsetX/y 能反应在当前dom上点击的左边，x轴，所以x轴的值就是 要移动到的宽度
-        let progressWidth = Math.min(e.offsetX, this._getProgressBarWidth())
+//        let progressWidth = Math.min(e.offsetX, this._getProgressBarWidth())
+
+        // 修复在点击到小圆点按钮上获取到的偏移量错误的bug
+        let rect = this.$refs.progressBar.getBoundingClientRect() // 这个方法返回一个矩形对象，包含四个属性：left、top、right和bottom。分别表示元素各边与页面上边和左边的距离。
+        console.log('rect:', rect)
+        let progressWidth = Math.min(e.pageX - rect.left, this._getProgressBarWidth())
         this._setProgressWidth(progressWidth)
         console.log(progressWidth)
         this._triggerPercent()
