@@ -111,7 +111,7 @@
       .progress {
         position absolute
         background $color-theme
-        width 50px
+        width 0px
         height 100%
       }
       .progress-btn-wrapper {
