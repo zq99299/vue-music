@@ -345,6 +345,9 @@
         // 在dom没有变化之前调用play会出错，所以使用vue提供的dom更新后调用
         this.$nextTick(() => {
           this.$refs.audio.play()
+          this.currentSong.getLyric().then(lyric => {
+            console.log(lyric)
+          })
         })
       },
       playing (staus) {
