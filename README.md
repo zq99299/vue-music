@@ -10,6 +10,7 @@ npm install
 
 # serve with hot reload at localhost:8080
 npm run dev
+启动后 访问 http://localhost:8080/#/singer
 
 # build for production with minification
 npm run build
@@ -32,3 +33,5 @@ For detailed explanation on how things work, checkout the [guide](http://vuejs-t
   |-base                              # 基础组件
   |-components                        # 业务组件，类似页面，但是一个单页应用来说，其实都是组件而不是页面，所以这个分类仁者见仁
 ```
+
+只完成了部分功能，很多点击无反应的 那就是没有实现好的；
