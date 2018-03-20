@@ -29,6 +29,17 @@
               </div>
             </div>
           </div>
+          <div class="middle-r">
+            <div class="lyric-wrapper">
+              <div v-if="currentLyric">
+                <p ref="lyricLine"
+                   class="text"
+                   :class="{'current' : currentLineNum == index}"
+                   v-for="(line,index) in currentLyric.lines">
+                  {{line.txt}}</p>
+              </div>
+            </div>
+          </div>
         </div>
         <!--底部操作区-->
         <div class="bottom">
@@ -96,6 +107,8 @@
   import ProgressBar from '@/base/progress-bar/progress-bar'
   import ProgressCircle from '@/base/progress-circle/progress-circle'
 
+  import Lyric from 'lyric-parser'
+
   const transform = prefixStyle('transform')
   export default {
     components: {
@@ -104,7 +117,9 @@
     data () {
       return {
         songReady: false, // 歌曲是否已经准备好，可以播放了？
-        currentTime: 0
+        currentTime: 0,
+        currentLyric: null, // 当前歌词
+        currentLineNum: 0// 当前歌词行数
       }
     },
     computed: {
@@ -331,6 +346,18 @@
       loop () {
         this.$refs.audio.currentTime = 0
         this.$refs.audio.play()
+      },
+      getLyric () {
+        this.currentSong.getLyric().then(lyric => {
+          this.currentLyric = new Lyric(lyric, this.handleLyric)
+          if (this.playing) {
+            this.currentLyric.play()
+          }
+        })
+      },
+      handleLyric ({lineNum, txt}) {
+        console.log(lineNum, '=========', txt)
+        this.currentLineNum = lineNum
       }
     },
     watch: {
@@ -345,9 +372,7 @@
         // 在dom没有变化之前调用play会出错，所以使用vue提供的dom更新后调用
         this.$nextTick(() => {
           this.$refs.audio.play()
-          this.currentSong.getLyric().then(lyric => {
-            console.log(lyric)
-          })
+          this.getLyric()
         })
       },
       playing (staus) {
@@ -458,6 +483,27 @@
                 width 100%
                 height 100%
                 border-radius 50%
+              }
+            }
+          }
+        }
+        .middle-r {
+          display inline-block
+          vertical-align top
+          width 100%
+          height 100%
+          overflow hidden
+          .lyric-wrapper {
+            width 80%
+            margin 0 auto
+            overflow hidden
+            text-align center
+            .text {
+              line-height 32px
+              color $color-text-l
+              font-size $font-size-medium
+              &.current {
+                color $color-text
               }
             }
           }
